@@ -21,12 +21,12 @@ describe('ReactUpdates', () => {
     React = require('react');
     ReactDOM = require('react-dom');
     ReactTestUtils = require('react-dom/test-utils');
-    act = ReactTestUtils.act;
+    act = ReactTestUtils.unstable_concurrentAct;
     Scheduler = require('scheduler');
   });
 
   // Note: This is based on a similar component we use in www. We can delete
-  // once the extra div wrapper is no longer neccessary.
+  // once the extra div wrapper is no longer necessary.
   function LegacyHiddenDiv({children, mode}) {
     return (
       <div hidden={mode === 'hidden'}>
@@ -1686,7 +1686,7 @@ describe('ReactUpdates', () => {
   }
 
   if (__DEV__) {
-    it('should properly trace interactions within batched udpates', () => {
+    it('should properly trace interactions within batched updates', () => {
       const SchedulerTracing = require('scheduler/tracing');
 
       let expectedInteraction;

@@ -16,6 +16,7 @@ let ReactNoop;
 let Scheduler;
 let ReactCache;
 let ReactTestRenderer;
+let ReactTestRendererAct;
 let SchedulerTracing;
 let AdvanceTime;
 let AsyncText;
@@ -45,9 +46,11 @@ function loadModules({
   if (useNoopRenderer) {
     ReactNoop = require('react-noop-renderer');
     ReactTestRenderer = null;
+    ReactTestRendererAct = null;
   } else {
     ReactNoop = null;
     ReactTestRenderer = require('react-test-renderer');
+    ReactTestRendererAct = ReactTestRenderer.unstable_concurrentAct;
   }
 
   AdvanceTime = class extends React.Component {
@@ -294,6 +297,7 @@ describe('Profiler', () => {
           'read current time',
           'read current time',
           'read current time',
+          'read current time',
         ]);
 
         // Restore original mock
@@ -373,7 +377,7 @@ describe('Profiler', () => {
         Scheduler.unstable_advanceTime(20); // 30 -> 50
 
         // Updating a sibling should not report a re-render.
-        ReactTestRenderer.act(updateProfilerSibling);
+        ReactTestRendererAct(updateProfilerSibling);
 
         expect(callback).not.toHaveBeenCalled();
       });
@@ -1282,7 +1286,7 @@ describe('Profiler', () => {
       it('should report time spent in layout effects and commit lifecycles', () => {
         const callback = jest.fn();
 
-        const ComponetWithEffects = () => {
+        const ComponentWithEffects = () => {
           React.useLayoutEffect(() => {
             Scheduler.unstable_advanceTime(10);
             return () => {
@@ -1321,7 +1325,7 @@ describe('Profiler', () => {
 
         const renderer = ReactTestRenderer.create(
           <React.Profiler id="mount-test" onCommit={callback}>
-            <ComponetWithEffects />
+            <ComponentWithEffects />
             <ComponentWithCommitHooks />
           </React.Profiler>,
         );
@@ -1341,7 +1345,7 @@ describe('Profiler', () => {
 
         renderer.update(
           <React.Profiler id="update-test" onCommit={callback}>
-            <ComponetWithEffects />
+            <ComponentWithEffects />
             <ComponentWithCommitHooks />
           </React.Profiler>,
         );
@@ -1378,7 +1382,7 @@ describe('Profiler', () => {
       it('should report time spent in layout effects and commit lifecycles with cascading renders', () => {
         const callback = jest.fn();
 
-        const ComponetWithEffects = ({shouldCascade}) => {
+        const ComponentWithEffects = ({shouldCascade}) => {
           const [didCascade, setDidCascade] = React.useState(false);
           React.useLayoutEffect(() => {
             if (shouldCascade && !didCascade) {
@@ -1414,7 +1418,7 @@ describe('Profiler', () => {
 
         const renderer = ReactTestRenderer.create(
           <React.Profiler id="mount-test" onCommit={callback}>
-            <ComponetWithEffects shouldCascade={true} />
+            <ComponentWithEffects shouldCascade={true} />
             <ComponentWithCommitHooks />
           </React.Profiler>,
         );
@@ -1443,7 +1447,7 @@ describe('Profiler', () => {
 
         renderer.update(
           <React.Profiler id="update-test" onCommit={callback}>
-            <ComponetWithEffects />
+            <ComponentWithEffects />
             <ComponentWithCommitHooks shouldCascade={true} />
           </React.Profiler>,
         );
@@ -1472,7 +1476,7 @@ describe('Profiler', () => {
       it('should bubble time spent in layout effects to higher profilers', () => {
         const callback = jest.fn();
 
-        const ComponetWithEffects = ({
+        const ComponentWithEffects = ({
           cleanupDuration,
           duration,
           setCountRef,
@@ -1494,18 +1498,18 @@ describe('Profiler', () => {
         const setCountRef = React.createRef(null);
 
         let renderer = null;
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer = ReactTestRenderer.create(
             <React.Profiler id="root-mount" onCommit={callback}>
               <React.Profiler id="a">
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   cleanupDuration={100}
                   setCountRef={setCountRef}
                 />
               </React.Profiler>
               <React.Profiler id="b">
-                <ComponetWithEffects duration={1000} cleanupDuration={10000} />
+                <ComponentWithEffects duration={1000} cleanupDuration={10000} />
               </React.Profiler>
             </React.Profiler>,
           );
@@ -1522,7 +1526,7 @@ describe('Profiler', () => {
         expect(call[3]).toBe(2); // commit start time (before mutations or effects)
         expect(call[4]).toEqual(enableSchedulerTracing ? new Set() : undefined); // interaction events
 
-        ReactTestRenderer.act(() => setCountRef.current(count => count + 1));
+        ReactTestRendererAct(() => setCountRef.current(count => count + 1));
 
         expect(callback).toHaveBeenCalledTimes(2);
 
@@ -1535,11 +1539,11 @@ describe('Profiler', () => {
         expect(call[3]).toBe(1013); // commit start time (before mutations or effects)
         expect(call[4]).toEqual(enableSchedulerTracing ? new Set() : undefined); // interaction events
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer.update(
             <React.Profiler id="root-update" onCommit={callback}>
               <React.Profiler id="b">
-                <ComponetWithEffects duration={1000} cleanupDuration={10000} />
+                <ComponentWithEffects duration={1000} cleanupDuration={10000} />
               </React.Profiler>
             </React.Profiler>,
           );
@@ -1572,7 +1576,7 @@ describe('Profiler', () => {
           }
         }
 
-        const ComponetWithEffects = ({
+        const ComponentWithEffects = ({
           cleanupDuration,
           duration,
           effectDuration,
@@ -1595,25 +1599,25 @@ describe('Profiler', () => {
 
         // Test an error that happens during an effect
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           ReactTestRenderer.create(
             <React.Profiler id="root" onCommit={callback}>
               <ErrorBoundary
                 fallback={
-                  <ComponetWithEffects
+                  <ComponentWithEffects
                     duration={10000000}
                     effectDuration={100000000}
                     cleanupDuration={1000000000}
                   />
                 }>
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   effectDuration={100}
                   cleanupDuration={1000}
                   shouldThrow={true}
                 />
               </ErrorBoundary>
-              <ComponetWithEffects
+              <ComponentWithEffects
                 duration={10000}
                 effectDuration={100000}
                 cleanupDuration={1000000}
@@ -1660,7 +1664,7 @@ describe('Profiler', () => {
           }
         }
 
-        const ComponetWithEffects = ({
+        const ComponentWithEffects = ({
           cleanupDuration,
           duration,
           effectDuration,
@@ -1683,25 +1687,25 @@ describe('Profiler', () => {
 
         let renderer = null;
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer = ReactTestRenderer.create(
             <React.Profiler id="root" onCommit={callback}>
               <ErrorBoundary
                 fallback={
-                  <ComponetWithEffects
+                  <ComponentWithEffects
                     duration={10000000}
                     effectDuration={100000000}
                     cleanupDuration={1000000000}
                   />
                 }>
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   effectDuration={100}
                   cleanupDuration={1000}
                   shouldThrow={true}
                 />
               </ErrorBoundary>
-              <ComponetWithEffects
+              <ComponentWithEffects
                 duration={10000}
                 effectDuration={100000}
                 cleanupDuration={1000000}
@@ -1726,25 +1730,25 @@ describe('Profiler', () => {
 
         // Test an error that happens during an cleanup function
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer.update(
             <React.Profiler id="root" onCommit={callback}>
               <ErrorBoundary
                 fallback={
-                  <ComponetWithEffects
+                  <ComponentWithEffects
                     duration={10000000}
                     effectDuration={100000000}
                     cleanupDuration={1000000000}
                   />
                 }>
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   effectDuration={100}
                   cleanupDuration={1000}
                   shouldThrow={false}
                 />
               </ErrorBoundary>
-              <ComponetWithEffects
+              <ComponentWithEffects
                 duration={10000}
                 effectDuration={100000}
                 cleanupDuration={1000000}
@@ -1780,7 +1784,7 @@ describe('Profiler', () => {
         it('should report interactions that were active', () => {
           const callback = jest.fn();
 
-          const ComponetWithEffects = () => {
+          const ComponentWithEffects = () => {
             const [didMount, setDidMount] = React.useState(false);
             React.useLayoutEffect(() => {
               Scheduler.unstable_advanceTime(didMount ? 1000 : 100);
@@ -1809,7 +1813,7 @@ describe('Profiler', () => {
             () => {
               ReactTestRenderer.create(
                 <React.Profiler id="root" onCommit={callback}>
-                  <ComponetWithEffects />
+                  <ComponentWithEffects />
                 </React.Profiler>,
               );
             },
@@ -1848,7 +1852,7 @@ describe('Profiler', () => {
       it('should report time spent in passive effects', () => {
         const callback = jest.fn();
 
-        const ComponetWithEffects = () => {
+        const ComponentWithEffects = () => {
           React.useLayoutEffect(() => {
             // This layout effect is here to verify that its time isn't reported.
             Scheduler.unstable_advanceTime(5);
@@ -1874,10 +1878,10 @@ describe('Profiler', () => {
         Scheduler.unstable_advanceTime(1);
 
         let renderer;
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer = ReactTestRenderer.create(
             <React.Profiler id="mount-test" onPostCommit={callback}>
-              <ComponetWithEffects />
+              <ComponentWithEffects />
             </React.Profiler>,
           );
         });
@@ -1896,10 +1900,10 @@ describe('Profiler', () => {
 
         Scheduler.unstable_advanceTime(1);
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer.update(
             <React.Profiler id="update-test" onPostCommit={callback}>
-              <ComponetWithEffects />
+              <ComponentWithEffects />
             </React.Profiler>,
           );
         });
@@ -1918,7 +1922,7 @@ describe('Profiler', () => {
 
         Scheduler.unstable_advanceTime(1);
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer.update(
             <React.Profiler id="unmount-test" onPostCommit={callback} />,
           );
@@ -1944,7 +1948,7 @@ describe('Profiler', () => {
       it('should report time spent in passive effects with cascading renders', () => {
         const callback = jest.fn();
 
-        const ComponetWithEffects = () => {
+        const ComponentWithEffects = () => {
           const [didMount, setDidMount] = React.useState(false);
           React.useEffect(() => {
             if (!didMount) {
@@ -1960,10 +1964,10 @@ describe('Profiler', () => {
 
         Scheduler.unstable_advanceTime(1);
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           ReactTestRenderer.create(
             <React.Profiler id="mount-test" onPostCommit={callback}>
-              <ComponetWithEffects />
+              <ComponentWithEffects />
             </React.Profiler>,
           );
         });
@@ -1992,7 +1996,7 @@ describe('Profiler', () => {
       it('should bubble time spent in effects to higher profilers', () => {
         const callback = jest.fn();
 
-        const ComponetWithEffects = ({
+        const ComponentWithEffects = ({
           cleanupDuration,
           duration,
           setCountRef,
@@ -2014,18 +2018,18 @@ describe('Profiler', () => {
         const setCountRef = React.createRef(null);
 
         let renderer = null;
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer = ReactTestRenderer.create(
             <React.Profiler id="root-mount" onPostCommit={callback}>
               <React.Profiler id="a">
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   cleanupDuration={100}
                   setCountRef={setCountRef}
                 />
               </React.Profiler>
               <React.Profiler id="b">
-                <ComponetWithEffects duration={1000} cleanupDuration={10000} />
+                <ComponentWithEffects duration={1000} cleanupDuration={10000} />
               </React.Profiler>
             </React.Profiler>,
           );
@@ -2042,7 +2046,7 @@ describe('Profiler', () => {
         expect(call[3]).toBe(2); // commit start time (before mutations or effects)
         expect(call[4]).toEqual(enableSchedulerTracing ? new Set() : undefined); // interaction events
 
-        ReactTestRenderer.act(() => setCountRef.current(count => count + 1));
+        ReactTestRendererAct(() => setCountRef.current(count => count + 1));
 
         expect(callback).toHaveBeenCalledTimes(2);
 
@@ -2055,11 +2059,11 @@ describe('Profiler', () => {
         expect(call[3]).toBe(1013); // commit start time (before mutations or effects)
         expect(call[4]).toEqual(enableSchedulerTracing ? new Set() : undefined); // interaction events
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer.update(
             <React.Profiler id="root-update" onPostCommit={callback}>
               <React.Profiler id="b">
-                <ComponetWithEffects duration={1000} cleanupDuration={10000} />
+                <ComponentWithEffects duration={1000} cleanupDuration={10000} />
               </React.Profiler>
             </React.Profiler>,
           );
@@ -2092,7 +2096,7 @@ describe('Profiler', () => {
           }
         }
 
-        const ComponetWithEffects = ({
+        const ComponentWithEffects = ({
           cleanupDuration,
           duration,
           effectDuration,
@@ -2115,25 +2119,25 @@ describe('Profiler', () => {
 
         // Test an error that happens during an effect
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           ReactTestRenderer.create(
             <React.Profiler id="root" onPostCommit={callback}>
               <ErrorBoundary
                 fallback={
-                  <ComponetWithEffects
+                  <ComponentWithEffects
                     duration={10000000}
                     effectDuration={100000000}
                     cleanupDuration={1000000000}
                   />
                 }>
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   effectDuration={100}
                   cleanupDuration={1000}
                   shouldThrow={true}
                 />
               </ErrorBoundary>
-              <ComponetWithEffects
+              <ComponentWithEffects
                 duration={10000}
                 effectDuration={100000}
                 cleanupDuration={1000000}
@@ -2180,7 +2184,7 @@ describe('Profiler', () => {
           }
         }
 
-        const ComponetWithEffects = ({
+        const ComponentWithEffects = ({
           cleanupDuration,
           duration,
           effectDuration,
@@ -2204,25 +2208,25 @@ describe('Profiler', () => {
 
         let renderer = null;
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer = ReactTestRenderer.create(
             <React.Profiler id="root" onPostCommit={callback}>
               <ErrorBoundary
                 fallback={
-                  <ComponetWithEffects
+                  <ComponentWithEffects
                     duration={10000000}
                     effectDuration={100000000}
                     cleanupDuration={1000000000}
                   />
                 }>
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   effectDuration={100}
                   cleanupDuration={1000}
                   shouldThrow={true}
                 />
               </ErrorBoundary>
-              <ComponetWithEffects
+              <ComponentWithEffects
                 duration={10000}
                 effectDuration={100000}
                 cleanupDuration={1000000}
@@ -2247,25 +2251,25 @@ describe('Profiler', () => {
 
         // Test an error that happens during an cleanup function
 
-        ReactTestRenderer.act(() => {
+        ReactTestRendererAct(() => {
           renderer.update(
             <React.Profiler id="root" onPostCommit={callback}>
               <ErrorBoundary
                 fallback={
-                  <ComponetWithEffects
+                  <ComponentWithEffects
                     duration={10000000}
                     effectDuration={100000000}
                     cleanupDuration={1000000000}
                   />
                 }>
-                <ComponetWithEffects
+                <ComponentWithEffects
                   duration={10}
                   effectDuration={100}
                   cleanupDuration={1000}
                   shouldThrow={false}
                 />
               </ErrorBoundary>
-              <ComponetWithEffects
+              <ComponentWithEffects
                 duration={10000}
                 effectDuration={100000}
                 cleanupDuration={1000000}
@@ -2303,7 +2307,7 @@ describe('Profiler', () => {
         it('should report interactions that were active', () => {
           const callback = jest.fn();
 
-          const ComponetWithEffects = () => {
+          const ComponentWithEffects = () => {
             const [didMount, setDidMount] = React.useState(false);
             React.useEffect(() => {
               Scheduler.unstable_advanceTime(didMount ? 1000 : 100);
@@ -2326,14 +2330,14 @@ describe('Profiler', () => {
 
           Scheduler.unstable_advanceTime(1);
 
-          ReactTestRenderer.act(() => {
+          ReactTestRendererAct(() => {
             SchedulerTracing.unstable_trace(
               interaction.name,
               interaction.timestamp,
               () => {
                 ReactTestRenderer.create(
                   <React.Profiler id="root" onPostCommit={callback}>
-                    <ComponetWithEffects />
+                    <ComponentWithEffects />
                   </React.Profiler>,
                 );
               },
@@ -2481,15 +2485,11 @@ describe('Profiler', () => {
         // Errors that happen inside of a subscriber should throw,
         throwInOnWorkStarted = true;
         expect(Scheduler).toFlushAndThrow('Expected error onWorkStarted');
-        // Rendering was interrupted by the error that was thrown
-        expect(Scheduler).toHaveYielded([]);
-        // Rendering continues in the next task
-        expect(Scheduler).toFlushAndYield(['Component:text']);
         throwInOnWorkStarted = false;
+        // Rendering was interrupted by the error that was thrown, then
+        // continued and finished in the next task.
+        expect(Scheduler).toHaveYielded(['Component:text']);
         expect(onWorkStarted).toHaveBeenCalled();
-
-        // But the React work should have still been processed.
-        expect(Scheduler).toFlushAndYield([]);
         const tree = renderer.toTree();
         expect(tree.type).toBe(Component);
         expect(tree.props.children).toBe('text');
@@ -2875,7 +2875,7 @@ describe('Profiler', () => {
         Scheduler.unstable_yieldValue('onPostCommit');
       });
 
-      const ComponetWithEffects = () => {
+      const ComponentWithEffects = () => {
         React.useEffect(() => {
           Scheduler.unstable_yieldValue('passive effect');
         });
@@ -2892,7 +2892,7 @@ describe('Profiler', () => {
             id="root"
             onCommit={onCommit}
             onPostCommit={onPostCommit}>
-            <ComponetWithEffects />
+            <ComponentWithEffects />
           </React.Profiler>,
         );
       });
@@ -3923,7 +3923,6 @@ describe('Profiler', () => {
 
         expect(onPostCommit).toHaveBeenCalledTimes(1);
         expect(onPostCommit.mock.calls[0][4]).toMatchInteractions([
-          initialRenderInteraction,
           highPriUpdateInteraction,
         ]);
 

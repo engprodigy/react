@@ -54,7 +54,7 @@ describe('ReactSchedulerIntegration', () => {
   }
 
   // Note: This is based on a similar component we use in www. We can delete
-  // once the extra div wrapper is no longer neccessary.
+  // once the extra div wrapper is no longer necessary.
   function LegacyHiddenDiv({children, mode}) {
     return (
       <div hidden={mode === 'hidden'}>
@@ -446,8 +446,6 @@ describe(
       React = require('react');
       ReactNoop = require('react-noop-renderer');
       Scheduler = require('scheduler');
-
-      React = require('react');
     });
 
     afterEach(() => {
@@ -500,7 +498,7 @@ describe(
       // This test reproduces a bug where React's Scheduler task timed out but
       // the `shouldYield` method returned true. Usually we try not to mock
       // internal methods, but I've made an exception here since the point is
-      // specifically to test that React is reslient to the behavior of a
+      // specifically to test that React is resilient to the behavior of a
       // Scheduler API. That being said, feel free to rewrite or delete this
       // test if/when the API changes.
       function Text({text}) {
@@ -531,6 +529,14 @@ describe(
 
         // Expire the task
         Scheduler.unstable_advanceTime(10000);
+        // Scheduling a new update is a trick to force the expiration to kick
+        // in. We don't check if a update has been starved at the beginning of
+        // working on it, since there's no point — we're already working on it.
+        // We only check before yielding to the main thread (to avoid starvation
+        // by other main thread work) or when receiving an update (to avoid
+        // starvation by incoming updates).
+        ReactNoop.render(<App />);
+
         // Because the render expired, React should finish the tree without
         // consulting `shouldYield` again
         expect(Scheduler).toFlushExpired(['B', 'C']);

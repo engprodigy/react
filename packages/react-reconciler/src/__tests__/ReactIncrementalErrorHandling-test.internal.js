@@ -46,7 +46,7 @@ describe('ReactIncrementalErrorHandling', () => {
   }
 
   // Note: This is based on a similar component we use in www. We can delete
-  // once the extra div wrapper is no longer neccessary.
+  // once the extra div wrapper is no longer necessary.
   function LegacyHiddenDiv({children, mode}) {
     return (
       <div hidden={mode === 'hidden'}>
@@ -440,8 +440,8 @@ describe('ReactIncrementalErrorHandling', () => {
       'C',
       'D',
 
-      // Since the error occured during a partially concurrent render, we should
-      // retry one more time, synchonrously.
+      // Since the error occurred during a partially concurrent render, we should
+      // retry one more time, synchronously.
       'A',
       'B',
       'Oops',
@@ -961,6 +961,7 @@ describe('ReactIncrementalErrorHandling', () => {
     expect(Scheduler).toFlushAndYield(['Foo']);
   });
 
+  // @gate skipUnmountedBoundaries
   it('should not attempt to recover an unmounting error boundary', () => {
     class Parent extends React.Component {
       componentWillUnmount() {
@@ -992,12 +993,17 @@ describe('ReactIncrementalErrorHandling', () => {
 
     ReactNoop.render(<Parent />);
     expect(Scheduler).toFlushWithoutYielding();
-    ReactNoop.render(null);
-    expect(Scheduler).toFlushAndYield([
-      // Parent unmounts before the error is thrown.
-      'Parent componentWillUnmount',
-      'ThrowsOnUnmount componentWillUnmount',
-    ]);
+
+    // Because the error boundary is also unmounting,
+    // an error in ThrowsOnUnmount should be rethrown.
+    expect(() => {
+      ReactNoop.render(null);
+      expect(Scheduler).toFlushAndYield([
+        'Parent componentWillUnmount',
+        'ThrowsOnUnmount componentWillUnmount',
+      ]);
+    }).toThrow('unmount error');
+
     ReactNoop.render(<Parent />);
   });
 

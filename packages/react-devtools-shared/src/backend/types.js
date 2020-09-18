@@ -22,7 +22,7 @@ type BundleType =
   | 1; // DEV
 
 export type WorkTag = number;
-export type SideEffectTag = number;
+export type WorkFlags = number;
 export type ExpirationTime = number;
 
 export type WorkTagMap = {|
@@ -190,7 +190,7 @@ export type InspectedElement = {|
   // Does the current renderer support editable function props?
   canEditFunctionProps: boolean,
 
-  // Is this Suspense, and can its value be overriden now?
+  // Is this Suspense, and can its value be overridden now?
   canToggleSuspense: boolean,
 
   // Can view component source location.

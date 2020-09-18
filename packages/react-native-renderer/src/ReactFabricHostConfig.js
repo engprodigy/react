@@ -435,22 +435,6 @@ export function replaceContainerChildren(
   newChildren: ChildSet,
 ): void {}
 
-export function DEPRECATED_mountResponderInstance(
-  responder: any,
-  responderInstance: any,
-  props: Object,
-  state: Object,
-  instance: Instance,
-) {
-  throw new Error('Not yet implemented.');
-}
-
-export function DEPRECATED_unmountResponderInstance(
-  responderInstance: any,
-): void {
-  throw new Error('Not yet implemented.');
-}
-
 export function getFundamentalComponentInstance(fundamentalInstance: any) {
   throw new Error('Not yet implemented.');
 }
@@ -477,10 +461,6 @@ export function cloneFundamentalInstance(fundamentalInstance: any) {
 
 export function getInstanceFromNode(node: any) {
   throw new Error('Not yet implemented.');
-}
-
-export function removeInstanceEventHandles(instance: any) {
-  // noop
 }
 
 export function isOpaqueHydratingObject(value: mixed): boolean {

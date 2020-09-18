@@ -285,73 +285,61 @@ describe('Store', () => {
       );
       expect(store).toMatchSnapshot('7: only third child is suspended');
 
-      // FIXME: The rest of the test fails. This was introduced as part of
-      // the Lanes refactor. I'm fairly certain it's related to the layout of
-      // the Suspense fiber: we no longer conditionally wrap the primary
-      // children. They are always wrapped in an extra fiber.
-      //
-      // This landed in the new fork without triggering the test run
-      // because we don't run the DevTools tests against both forks. I only
-      // discovered the failure once I upstreamed the changes.
-      //
-      // Since this has been running in www for weeks without major issues, I'll
-      // defer fixing this to a follow up.
-      //
-      // const rendererID = getRendererID();
-      // act(() =>
-      //   agent.overrideSuspense({
-      //     id: store.getElementIDAtIndex(4),
-      //     rendererID,
-      //     forceFallback: true,
-      //   }),
-      // );
-      // expect(store).toMatchSnapshot('8: first and third child are suspended');
-      // act(() =>
-      //   agent.overrideSuspense({
-      //     id: store.getElementIDAtIndex(2),
-      //     rendererID,
-      //     forceFallback: true,
-      //   }),
-      // );
-      // expect(store).toMatchSnapshot('9: parent is suspended');
-      // act(() =>
-      //   ReactDOM.render(
-      //     <Wrapper
-      //       suspendParent={false}
-      //       suspendFirst={true}
-      //       suspendSecond={true}
-      //     />,
-      //     container,
-      //   ),
-      // );
-      // expect(store).toMatchSnapshot('10: parent is suspended');
-      // act(() =>
-      //   agent.overrideSuspense({
-      //     id: store.getElementIDAtIndex(2),
-      //     rendererID,
-      //     forceFallback: false,
-      //   }),
-      // );
-      // expect(store).toMatchSnapshot('11: all children are suspended');
-      // act(() =>
-      //   agent.overrideSuspense({
-      //     id: store.getElementIDAtIndex(4),
-      //     rendererID,
-      //     forceFallback: false,
-      //   }),
-      // );
-      // expect(store).toMatchSnapshot('12: all children are suspended');
-      // act(() =>
-      //   ReactDOM.render(
-      //     <Wrapper
-      //       suspendParent={false}
-      //       suspendFirst={false}
-      //       suspendSecond={false}
-      //     />,
-      //     container,
-      //   ),
-      // );
-      // expect(store).toMatchSnapshot('13: third child is suspended');
+      const rendererID = getRendererID();
+      act(() =>
+        agent.overrideSuspense({
+          id: store.getElementIDAtIndex(4),
+          rendererID,
+          forceFallback: true,
+        }),
+      );
+      expect(store).toMatchSnapshot('8: first and third child are suspended');
+      act(() =>
+        agent.overrideSuspense({
+          id: store.getElementIDAtIndex(2),
+          rendererID,
+          forceFallback: true,
+        }),
+      );
+      expect(store).toMatchSnapshot('9: parent is suspended');
+      act(() =>
+        ReactDOM.render(
+          <Wrapper
+            suspendParent={false}
+            suspendFirst={true}
+            suspendSecond={true}
+          />,
+          container,
+        ),
+      );
+      expect(store).toMatchSnapshot('10: parent is suspended');
+      act(() =>
+        agent.overrideSuspense({
+          id: store.getElementIDAtIndex(2),
+          rendererID,
+          forceFallback: false,
+        }),
+      );
+      expect(store).toMatchSnapshot('11: all children are suspended');
+      act(() =>
+        agent.overrideSuspense({
+          id: store.getElementIDAtIndex(4),
+          rendererID,
+          forceFallback: false,
+        }),
+      );
+      expect(store).toMatchSnapshot('12: all children are suspended');
+      act(() =>
+        ReactDOM.render(
+          <Wrapper
+            suspendParent={false}
+            suspendFirst={false}
+            suspendSecond={false}
+          />,
+          container,
+        ),
+      );
+      expect(store).toMatchSnapshot('13: third child is suspended');
     });
 
     it('should display a partially rendered SuspenseList', () => {
@@ -867,19 +855,19 @@ describe('Store', () => {
     }
 
     const MyComponent = (props, ref) => null;
-    const FowardRefComponent = React.forwardRef(MyComponent);
+    const ForwardRefComponent = React.forwardRef(MyComponent);
     const MyComponent2 = (props, ref) => null;
-    const FowardRefComponentWithAnonymousFunction = React.forwardRef(() => (
+    const ForwardRefComponentWithAnonymousFunction = React.forwardRef(() => (
       <MyComponent2 />
     ));
     const MyComponent3 = (props, ref) => null;
-    const FowardRefComponentWithCustomDisplayName = React.forwardRef(
+    const ForwardRefComponentWithCustomDisplayName = React.forwardRef(
       MyComponent3,
     );
-    FowardRefComponentWithCustomDisplayName.displayName = 'Custom';
+    ForwardRefComponentWithCustomDisplayName.displayName = 'Custom';
     const MyComponent4 = (props, ref) => null;
     const MemoComponent = React.memo(MyComponent4);
-    const MemoForwardRefComponent = React.memo(FowardRefComponent);
+    const MemoForwardRefComponent = React.memo(ForwardRefComponent);
     const MyComponent5 = (props, ref) => null;
     const LazyComponent = React.lazy(() => fakeImport(MyComponent5));
 
@@ -896,9 +884,9 @@ describe('Store', () => {
     const App = () => (
       <React.Fragment>
         <MyComponent />
-        <FowardRefComponent />
-        <FowardRefComponentWithAnonymousFunction />
-        <FowardRefComponentWithCustomDisplayName />
+        <ForwardRefComponent />
+        <ForwardRefComponentWithAnonymousFunction />
+        <ForwardRefComponentWithCustomDisplayName />
         <MemoComponent />
         <MemoForwardRefComponent />
         <React.Suspense fallback="Loading...">
